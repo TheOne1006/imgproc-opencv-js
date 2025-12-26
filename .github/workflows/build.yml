@@ -1,0 +1,66 @@
+name: Build OpenCV.js
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libv4l-dev
+
+      - name: actions-setup-cmake
+        uses: jwlawson/actions-setup-cmake@v1.13.1
+        with:
+          cmake-version: 3.28
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: opencv-js
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' 
+
+      - name: Get version
+        id: get_version
+        working-directory: opencv-js
+        run: echo "VERSION=$(cat .version)" >> $GITHUB_OUTPUT
+
+      - name: Checkout OpenCV
+        uses: actions/checkout@v4
+        with:
+          repository: opencv/opencv
+          ref: refs/tags/${{ steps.get_version.outputs.VERSION }}
+          path: 'opencv'
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+          actions-cache-folder: emsdk-cache
+
+      - name: Verify Emscripten
+        run: emcc -v
+
+      - name: Build opencv.js
+        working-directory: opencv
+        run: |
+          emcmake python3 ./platforms/js/build_js.py build_wasm --build_wasm --build_loader
+
+      - name: List build outputs
+        run: |
+          ls -la opencv/build_wasm/bin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencv.js
+          path: opencv/build_wasm/bin
+          if-no-files-found: error
