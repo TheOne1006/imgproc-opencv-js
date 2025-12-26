@@ -52,7 +52,13 @@ jobs:
       - name: Build opencv.js
         working-directory: opencv
         run: |
-          emcmake python3 ./platforms/js/build_js.py build_wasm --build_wasm --build_loader
+          emcmake python3 ./platforms/js/build_js.py \
+            build_wasm \
+            --build_wasm \
+            --build_loader \
+            --cmake_option="-DCMAKE_CXX_STANDARD=17" \
+            --cmake_option="-DCMAKE_CXX_STANDARD_REQUIRED=ON" \
+            --cmake_option="-DCMAKE_CXX_EXTENSIONS=OFF"
 
       - name: List build outputs
         run: |
